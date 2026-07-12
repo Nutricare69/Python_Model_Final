@@ -1,6 +1,6 @@
 # ============================================================================
 # FILE: app/services/meal_generator.py
-# ROLE: CORE COMPUTATION ORCHESTRATION SERVICE (With Dynamic Recency Decay)
+# ROLE: CORE COMPUTATION ORCHESTRATION SERVICE (With Dynamic Alternative Fallbacks)
 # ============================================================================
 
 from typing import Dict, List
@@ -20,7 +20,8 @@ from app.utils.constants import DATASET_PATH
 class MealGenerator:
     """
     Orchestrates the lifecycle generation sequence for compiling personalized 
-    diet configurations completely in-memory with dynamic attribute rotation.
+    diet configurations completely in-memory with dynamic attribute rotation
+    and automated dual-choice alternative fallback pairing generation.
     """
 
     def __init__(self, dataset_path: str = DATASET_PATH):
@@ -71,9 +72,7 @@ class MealGenerator:
         filtered_df = foods_df.copy()
         
         # ➔ SAFETY DATA CHECK CORRECTION GATES
-        # Intercepts mislabeled rows in memory before they pass into downstream loops
         if user_profile.get("diet_type") == "Veg" or user_profile.get("food_preference") == "Veg":
-            # Explicitly force-remove fish items if vegetarian constraints are active
             fish_keywords = ["paturi", "mach", "fish", "chingri", "bhetki", "pabda", "rui", "sardine", "mackerel", "tuna"]
             mask = filtered_df["canonical_food_name"].str.lower().str.contains('|'.join(fish_keywords))
             filtered_df = filtered_df[~mask]
@@ -148,7 +147,15 @@ class MealGenerator:
             "fiber_g": float(food_row.get("fiber_g", 0))
         }
 
+    # =========================================================================
+    # SELECTION ENGINE LOOP WITH LOOKAHEAD CONTINGENCY HEURISTICS
+    # =========================================================================
     def select_food_combination(self, ranked_df: pd.DataFrame, target_calories: float, food_count: int = 2) -> List[Dict]:
+        """
+        Greedily assembles optimal candidates up to a safe 125% bounding energy limit.
+        UPGRADED: Dynamically appends alternative items ('Food A / Food B') by scanning 
+        down the suitability matrix for a matching structural culinary footprint.
+        """
         selected_foods = []
         current_calories = 0
         sorted_df = ranked_df.sort_values(by="suitability_score", ascending=False)
@@ -160,7 +167,7 @@ class MealGenerator:
         has_grain_dish = False
         has_accompaniment_dish = False
 
-        for _, row in sorted_df.iterrows():
+        for index, row in sorted_df.iterrows():
             if len(selected_foods) >= food_count:
                 break
 
@@ -179,7 +186,39 @@ class MealGenerator:
                     continue
 
             if (current_calories + food_calories) <= (target_calories * 1.25):
-                selected_foods.append(self.format_food(row))
+                formatted_item = self.format_food(row)
+                current_id = str(row.get("food_id", ""))
+                alt_name = ""
+
+                # ➔ CONTINGENCY LOOKAHEAD SCANNER
+                # Search further down the ranked stack to find a structural fallback substitute
+                for _, alt_row in sorted_df.iterrows():
+                    alt_id = str(alt_row.get("food_id", ""))
+                    if alt_id == current_id:
+                        continue
+                    
+                    a_name = str(alt_row.get("canonical_food_name", "")).lower()
+                    is_alt_liquid = any(k in a_name for k in liquid_keywords)
+                    is_alt_grain = any(k in a_name for k in grain_keywords)
+
+                    # Verify structural sub-type compatibility (Grain-for-Grain, Curry-for-Curry)
+                    if is_alt_grain == is_current_item_grain and is_alt_liquid == is_current_item_liquid:
+                        alt_name = str(alt_row.get("canonical_food_name", ""))
+                        break
+
+                # If an alternative dish was found, concatenate it visually onto the client card
+                if alt_name:
+                    def clean_encoding_inline(text: str) -> str:
+                        if not text:
+                            return ""
+                        return (text.replace("â€“", "–")
+                                    .replace("â€”", "—")
+                                    .replace("â€™", "'")
+                                    .replace("\x80\x93", "–")
+                                    .strip())
+                    formatted_item["canonical_food_name"] = f"{formatted_item['canonical_food_name']} / {clean_encoding_inline(alt_name)}"
+
+                selected_foods.append(formatted_item)
                 current_calories += food_calories
                 
                 if is_current_item_liquid:
@@ -308,7 +347,7 @@ class MealGenerator:
                 name = str(row.get("canonical_food_name", "")).lower()
                 for protein in recent_proteins:
                     if protein in name:
-                        score -= 45.0  # Dynamic protein rotation penalty weight
+                        score -= 45.0  
                 return max(0.0, score)
 
             ranked["suitability_score"] = ranked.apply(adjust_score, axis=1)
@@ -324,8 +363,11 @@ class MealGenerator:
         used_food_ids.update(self.get_food_ids(snacks["foods"]))
         used_food_ids.update(self.get_food_ids(dinner["foods"]))
 
-        all_day_meals = breakfast["foods"] + lunch["foods"] + snacks["foods"] + dinner["foods"]
-        day_combined_text = " ".join([f["canonical_food_name"].lower() for f in all_day_meals])
+        # For state tracking, extract only the primary dish name (pre-slash split properties)
+        def get_primary_token(food_obj: dict) -> str:
+            return food_obj["canonical_food_name"].split(" / ")[0].lower()
+
+        day_combined_text = " ".join([get_primary_token(f) for f in (breakfast["foods"] + lunch["foods"] + snacks["foods"] + dinner["foods"])])
         
         recent_proteins.clear()
         if any(k in day_combined_text for k in ["fish", "mach", "paturi", "chingri"]):
