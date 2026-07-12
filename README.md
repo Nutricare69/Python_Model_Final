@@ -6,16 +6,16 @@ An enterprise-grade, full-stack microservices application that orchestrates mach
 
 ## 🏗️ System Architecture Overview
 
-The platform uses a split-microservices topology designed to decouple user state management from high-intensity computational constraint optimization:
+The platform uses a split-microservices topology designed to decouple computational processing from storage and UI layers:
 
-[ React Client ] ──(Axios HTTPS)──> [ Node.js Gateway / MongoDB ]
+[ React Client ] ──(Axios HTTP)──> [ Node.js Gateway / MongoDB ]
 │
 (JSON Payload Gateway)
 ▼
 [ Python FastAPI Compute Engine ]
 
 1. **Frontend Layer (React):** A premium UI dashboard implemented with Tailwind CSS, Lucide Icons, and Framer Motion fluid hardware-accelerated tracking loops.
-2. **Gateway API Layer (Node.js & Express):** Manages secure user authentication, context aggregation, persistence tracking, and routes inbound execution parameters down to the ML stack.
+2. **Gateway API Layer (Node.js & Express):** Routes inbound execution parameters to the ML stack, handles data aggregation, and persists calculations to MongoDB.
 3. **Core AI/Compute Engine (Python FastAPI):** A stateless in-memory processing cluster that runs dynamic vector masking, metabolic target calculations, multi-objective score rankings, and dynamic recency decay matrices.
 
 ---
@@ -23,13 +23,16 @@ The platform uses a split-microservices topology designed to decouple user state
 ## 🚀 Getting Started
 
 ### 📋 Prerequisites
-* Node.js (v18.x or higher)
-* Python (v3.10.x or higher)
-* MongoDB Instance (Local or Atlas Cloud Cluster)
+
+- Node.js (v18.x or higher)
+- Python (v3.10.x or higher)
+- MongoDB Instance (Local or Atlas Cloud Cluster)
 
 ### 🛠️ Step 1: Clone and Environment Setup
+
 Clone the repository to your local directory setup:
-```bash
+
+````bash
 git clone [https://github.com/your-username/nutricare-core.git](https://github.com/your-username/nutricare-core.git)
 cd nutricare-core
 
@@ -66,8 +69,19 @@ cd frontend-client
 npm install
 npm run dev
 
-🛣️ API Route Documentation🟢 Node.js Orchestration GatewayMethodEndpointAccessDescriptionPOST/api/generate/ml-response-generateProtected (JWT)Aggregates client profile parameters, forwards payloads to FastAPI, saves calculations to MongoDB, and compiles clean outputs.GET/api/generate/all-plansProtected (JWT)Fetches historical generated dietary snapshot documents from MongoDB assigned to the authenticated
+🛣️ API Route Documentation
 
+### 🟢 Node.js Orchestration Gateway
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/generate/ml-response-generate` | Aggregates client profile parameters, forwards payloads to FastAPI, saves calculations to MongoDB, and compiles clean outputs. |
+| GET | `/api/generate/all-plans` | Fetches historical generated dietary snapshot documents from MongoDB assigned to the authenticated user. |
+| POST | `/api/user/profile` | Creates or updates user profile with personal health data and preferences. |
+| GET | `/api/user/profile` | Retrieves the current user's complete profile information. |
+
+**Sample Request Body for Meal Generation:**
+```json
 {
   "weight": 76.9,
   "height": 172.0,
@@ -81,22 +95,92 @@ npm run dev
   "allergies": [],
   "activity_level": "Moderate"
 }
+````
 
-🔵 Python FastAPI Compute EngineMethodEndpointAccessDescriptionPOST/api/meal-plan/generateInternal PoolAccepts structured metabolic profile parameters, applies safety filtering matrices, scores food datasets, and executes attribute rotation pipelines.
+**Sample Response:**
+
+```json
+{
+  "status": "success",
+  "plan_id": "64a2f8e3c1b2d4e5f6g7h8i9",
+  "profileSnapshot": {
+    "bmi": 25.9,
+    "bmi_category": "Overweight",
+    "tdee": 2450
+  },
+  "daily_targets": {
+    "target_calories": 1960,
+    "target_protein": 140,
+    "target_fat": 65,
+    "target_carbs": 245
+  },
+  "days": [...]
+}
+```
+
+### 🔵 Python FastAPI Compute Engine
+
+| Method | Endpoint                  | Description                                                                                                                                          |
+| ------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/meal-plan/generate` | Accepts structured metabolic profile parameters, applies safety filtering matrices, scores food datasets, and executes attribute rotation pipelines. |
+| POST   | `/api/bmi/calculate`      | Computes BMI and category based on height and weight inputs.                                                                                         |
+| POST   | `/api/calorie/calculate`  | Generates BMR and TDEE values from metabolic parameters and activity levels.                                                                         |
+| GET    | `/api/food/all`           | Retrieves complete food database with nutritional information.                                                                                       |
+| POST   | `/api/food/filter`        | Filters foods based on allergies, medical conditions, and preferences.                                                                               |
+
+**FastAPI Request Format:**
+
+```json
+{
+  "weight_kg": 76.9,
+  "height_cm": 172.0,
+  "age": 30,
+  "gender": "Male",
+  "goal": "Weight Loss",
+  "food_preference": "Non-Veg",
+  "days": 7,
+  "region": "East",
+  "state": "West Bengal",
+  "medical_conditions": [],
+  "allergies": [],
+  "activity_level": "Moderate"
+}
+```
+
+**FastAPI Response Format:**
+
+```json
+{
+  "status": "success",
+  "bmi": 25.9,
+  "bmi_category": "Overweight",
+  "bmr": 1680,
+  "tdee": 2450,
+  "meal_plan": {
+    "daily_targets": {
+      "calories": 1960,
+      "protein": 140,
+      "fat": 65,
+      "carbs": 245
+    },
+    "days": [...]
+  }
+}
+```
 
 🧠 Core Service Layers (Python Engine Architecture)
 The stateless Python compute framework is orchestrated using highly modular single-responsibility service patterns:
 
-[ app.api.meal_plans ] 
-         │
-         ▼
+[ app.api.meal_plans ]
+│
+▼
 [ app.services.meal_generator ]
-         │
-         ├─► [ app.services.bmi_service ] ──────► (Calculates BMI + Category)
-         ├─► [ app.services.calorie_service ] ──► (Generates BMR / TDEE Targets)
-         ├─► [ app.services.allergy_service ] ──► (Hard Vector Matrix Masking)
-         ├─► [ app.services.disease_service ] ──► (Pathology Contraint Masks)
-         └─► [ app.services.ranking_service ] ──► (Heuristic Composite Scoring)
+│
+├─► [ app.services.bmi_service ] ──────► (Calculates BMI + Category)
+├─► [ app.services.calorie_service ] ──► (Generates BMR / TDEE Targets)
+├─► [ app.services.allergy_service ] ──► (Hard Vector Matrix Masking)
+├─► [ app.services.disease_service ] ──► (Pathology Contraint Masks)
+└─► [ app.services.ranking_service ] ──► (Heuristic Composite Scoring)
 
 🎛️ MealGenerator (app/services/meal_generator.py)
 Acts as the central execution manager for payload compilation, operating completely in memory:
@@ -126,54 +210,54 @@ Calculated snap records are tracked within MongoDB under a highly nested documen
 
 JavaScript
 const nutriPlanSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  planNumber: { type: Number, required: true },
-  
-  profileSnapshot: {
-    age: Number,
-    weight: Number,
-    height: Number,
-    gender: String,
-    goal: String,
-    food_preference: String,
-    medical_conditions: [String],
-    allergies: [String],
-    activity_level: String,
-    bmi: Number,
-    bmi_category: String, // Calculated by Python Layer
-    tdee: Number,
-    days: Number,
-    region: String,       // Injected Fallback Token
-    state: String         // Injected Fallback Token
-  },
+user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+planNumber: { type: Number, required: true },
 
-  daily_targets: {
-    target_calories: Number,
-    target_protein: Number,
-    target_fat: Number,
-    target_carbs: Number
-  },
+profileSnapshot: {
+age: Number,
+weight: Number,
+height: Number,
+gender: String,
+goal: String,
+food_preference: String,
+medical_conditions: [String],
+allergies: [String],
+activity_level: String,
+bmi: Number,
+bmi_category: String, // Calculated by Python Layer
+tdee: Number,
+days: Number,
+region: String, // Injected Fallback Token
+state: String // Injected Fallback Token
+},
 
-  days: [
-    {
-      dayNumber: Number,
-      meals: [
-        {
-          mealType: { type: String, enum: ["Breakfast", "Lunch", "Dinner"] },
-          foods: [
-            {
-              name: String,
-              calories: Number,
-              protein: Number,
-              fat: Number,
-              carbs: Number
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  createdAt: { type: Date, default: Date.now }
+daily_targets: {
+target_calories: Number,
+target_protein: Number,
+target_fat: Number,
+target_carbs: Number
+},
+
+days: [
+{
+dayNumber: Number,
+meals: [
+{
+mealType: { type: String, enum: ["Breakfast", "Lunch", "Dinner"] },
+foods: [
+{
+name: String,
+calories: Number,
+protein: Number,
+fat: Number,
+carbs: Number
+}
+]
+}
+]
+}
+],
+createdAt: { type: Date, default: Date.now }
 });
 🛠️ Verification & Troubleshooting
 If your technical review panel notices issues or if requests drop down the integration bridge, verify these checkpoints:
