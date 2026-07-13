@@ -1,86 +1,270 @@
 # AI-Driven Personalized Nutrition & Meal Recommendation System
 
-An enterprise-grade, full-stack microservices application that orchestrates machine learning analysis, metabolic target calculation, and cultural/medical heuristic mapping to generate completely customized, macro-balanced nutrition plans.
+An end-to-end personalized nutrition platform that creates structured meal plans using a React client, a Node.js orchestration layer, a Python FastAPI compute service, and MongoDB storage.
+
+The system is built to:
+
+- calculate BMI, BMR, and TDEE
+- generate daily calorie and macro targets
+- recommend meals based on user goals and preferences
+- filter unsafe food options using allergies and medical conditions
+- rank foods using regional, nutritional, and plan-based rules
+- save generated plans for later viewing and comparison
 
 ---
 
-## 🏗️ System Architecture Overview
+## Table of Contents
 
-The platform uses a split-microservices topology designed to decouple computational processing from storage and UI layers:
+- Overview
+- Key Features
+- Tech Stack
+- System Architecture
+- Project Structure
+- Installation
+- Environment Variables
+- API Reference
+- Data Flow
+- Data Models
+- Core Services
+- Input Rules
+- Troubleshooting
+- Future Improvements
 
-[ React Client ] ──(Axios HTTP)──> [ Node.js Gateway / MongoDB ]
-│
-(JSON Payload Gateway)
-▼
+---
+
+## Overview
+
+This project accepts user health and preference inputs and converts them into personalized nutrition outputs.
+
+Typical inputs include:
+
+- weight and height
+- age and gender
+- fitness or weight goal
+- food preference
+- activity level
+- region and state
+- medical conditions
+- allergies
+- number of days required
+
+The FastAPI service computes the nutrition values, the Node.js server manages requests and persistence, and the frontend presents the final meal plan in a user-friendly format.
+
+---
+
+## Key Features
+
+### Nutrition Calculation
+
+- BMI calculation
+- BMI category classification
+- BMR calculation
+- TDEE estimation
+- macro target generation
+
+### Meal Personalization
+
+- goal-based meal planning
+- vegetarian and non-vegetarian support
+- region and state-aware ranking
+- allergy filtering
+- medical-condition filtering
+- day-wise meal rotation
+
+### Platform Features
+
+- modular microservices design
+- FastAPI-based computation
+- Node.js gateway for orchestration
+- MongoDB persistence for generated plans
+- React dashboard for plan display
+
+---
+
+## Tech Stack
+
+### Frontend
+
+- React
+- Tailwind CSS
+- Framer Motion
+- Lucide Icons
+
+### Backend
+
+- Node.js
+- Express
+- Python
+- FastAPI
+
+### Database
+
+- MongoDB
+
+### Supporting Libraries
+
+- pandas
+- mongoose
+- pydantic
+
+---
+
+## System Architecture
+
+```text
+[ React Client ]
+        |
+        | Axios / HTTP
+        v
+[ Node.js Gateway ] -----> [ MongoDB ]
+        |
+        | JSON request forwarding
+        v
 [ Python FastAPI Compute Engine ]
+```
 
-1. **Frontend Layer (React):** A premium UI dashboard implemented with Tailwind CSS, Lucide Icons, and Framer Motion fluid hardware-accelerated tracking loops.
-2. **Gateway API Layer (Node.js & Express):** Routes inbound execution parameters to the ML stack, handles data aggregation, and persists calculations to MongoDB.
-3. **Core AI/Compute Engine (Python FastAPI):** A stateless in-memory processing cluster that runs dynamic vector masking, metabolic target calculations, multi-objective score rankings, and dynamic recency decay matrices.
+### Layer Responsibilities
+
+#### React Client
+
+- collects profile inputs
+- sends meal generation requests
+- displays the generated meal plan
+
+#### Node.js Gateway
+
+- receives requests from the frontend
+- validates payload structure
+- forwards data to FastAPI
+- stores completed plans in MongoDB
+
+#### Python FastAPI Compute Engine
+
+- performs metabolic calculations
+- filters unsafe foods
+- ranks meal options
+- builds the final meal plan output
+
+#### MongoDB
+
+- stores user profiles
+- stores generated meal plans
+- keeps plan history for reuse and review
 
 ---
 
-## 🚀 Getting Started
+## Project Structure
 
-### 📋 Prerequisites
+```text
+root
+├── backend-node
+├── backend-python
+├── frontend-client
+└── README.md
+```
 
-- Node.js (v18.x or higher)
-- Python (v3.10.x or higher)
-- MongoDB Instance (Local or Atlas Cloud Cluster)
+---
 
-### 🛠️ Step 1: Clone and Environment Setup
+## Installation
 
-Clone the repository to your local directory setup:
+### Prerequisites
 
-````bash
-git clone [https://github.com/your-username/nutricare-core.git](https://github.com/your-username/nutricare-core.git)
+- Node.js v18 or later
+- Python 3.10 or later
+- MongoDB local instance or cloud cluster
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/nutricare-core.git
 cd nutricare-core
+```
 
-Create a .env configuration file inside your Node Backend directory:
+### 2. Configure Environment Variables
 
+Create a `.env` file in the Node.js backend folder.
+
+```env
 PORT=5000
 MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/nutricare
 ML_SERVER_URL=http://localhost:8000
-JWT_SECRET=your_system_auth_token_secret
+```
 
-🛠️ Step 2: Microservices Installation & Initialization
-Open three concurrent terminal windows to boot the execution stacks:
+### 3. Start the Python FastAPI Service
 
-Terminal 1: Python FastAPI Compute Cluster
-
+```bash
 cd backend-python
 python -m venv venv
-# Windows:
+
+# Windows
 .\venv\Scripts\activate
-# Mac/Linux:
+
+# macOS / Linux
 source venv/bin/activate
 
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
+```
 
+### 4. Start the Node.js Backend
 
-Terminal 2: Node.js Orchestration Gateway
+```bash
 cd backend-node
 npm install
 npm run dev
+```
 
-Terminal 3: React Frontend Dashboard
+### 5. Start the Frontend
+
+```bash
 cd frontend-client
 npm install
 npm run dev
+```
 
-🛣️ API Route Documentation
+---
 
-### 🟢 Node.js Orchestration Gateway
+## Environment Variables
+
+### Node.js Backend
+
+| Variable | Purpose |
+|---|---|
+| `PORT` | Port for the gateway server |
+| `MONGO_URI` | MongoDB connection string |
+| `ML_SERVER_URL` | FastAPI service URL |
+
+If additional local settings are needed for the Python layer, keep them in a separate service config file.
+
+---
+
+## API Reference
+
+### Node.js Gateway
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/generate/ml-response-generate` | Aggregates client profile parameters, forwards payloads to FastAPI, saves calculations to MongoDB, and compiles clean outputs. |
-| GET | `/api/generate/all-plans` | Fetches historical generated dietary snapshot documents from MongoDB assigned to the authenticated user. |
-| POST | `/api/user/profile` | Creates or updates user profile with personal health data and preferences. |
-| GET | `/api/user/profile` | Retrieves the current user's complete profile information. |
+|---|---|---|
+| POST | `/api/generate/ml-response-generate` | Generates a meal plan by forwarding the request to FastAPI and storing the result |
+| GET | `/api/generate/all-plans` | Returns saved meal plans |
+| POST | `/api/user/profile` | Creates or updates a user profile |
+| GET | `/api/user/profile` | Returns the current profile data |
 
-**Sample Request Body for Meal Generation:**
+### Python FastAPI Service
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/meal-plan/generate` | Generates a full meal plan from profile data |
+| POST | `/api/bmi/calculate` | Calculates BMI and BMI category |
+| POST | `/api/calorie/calculate` | Calculates BMR and TDEE |
+| GET | `/api/food/all` | Returns the food catalog |
+| POST | `/api/food/filter` | Filters food based on preferences and restrictions |
+
+---
+
+## Request and Response Examples
+
+### Meal Generation Request
+
 ```json
 {
   "weight": 76.9,
@@ -95,9 +279,9 @@ npm run dev
   "allergies": [],
   "activity_level": "Moderate"
 }
-````
+```
 
-**Sample Response:**
+### Meal Generation Response
 
 ```json
 {
@@ -114,21 +298,11 @@ npm run dev
     "target_fat": 65,
     "target_carbs": 245
   },
-  "days": [...]
+  "days": []
 }
 ```
 
-### 🔵 Python FastAPI Compute Engine
-
-| Method | Endpoint                  | Description                                                                                                                                          |
-| ------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/meal-plan/generate` | Accepts structured metabolic profile parameters, applies safety filtering matrices, scores food datasets, and executes attribute rotation pipelines. |
-| POST   | `/api/bmi/calculate`      | Computes BMI and category based on height and weight inputs.                                                                                         |
-| POST   | `/api/calorie/calculate`  | Generates BMR and TDEE values from metabolic parameters and activity levels.                                                                         |
-| GET    | `/api/food/all`           | Retrieves complete food database with nutritional information.                                                                                       |
-| POST   | `/api/food/filter`        | Filters foods based on allergies, medical conditions, and preferences.                                                                               |
-
-**FastAPI Request Format:**
+### FastAPI Request Example
 
 ```json
 {
@@ -147,7 +321,7 @@ npm run dev
 }
 ```
 
-**FastAPI Response Format:**
+### FastAPI Response Example
 
 ```json
 {
@@ -163,107 +337,176 @@ npm run dev
       "fat": 65,
       "carbs": 245
     },
-    "days": [...]
+    "days": []
   }
 }
 ```
 
-🧠 Core Service Layers (Python Engine Architecture)
-The stateless Python compute framework is orchestrated using highly modular single-responsibility service patterns:
+---
 
-[ app.api.meal_plans ]
-│
-▼
-[ app.services.meal_generator ]
-│
-├─► [ app.services.bmi_service ] ──────► (Calculates BMI + Category)
-├─► [ app.services.calorie_service ] ──► (Generates BMR / TDEE Targets)
-├─► [ app.services.allergy_service ] ──► (Hard Vector Matrix Masking)
-├─► [ app.services.disease_service ] ──► (Pathology Contraint Masks)
-└─► [ app.services.ranking_service ] ──► (Heuristic Composite Scoring)
+## Data Flow
 
-🎛️ MealGenerator (app/services/meal_generator.py)
-Acts as the central execution manager for payload compilation, operating completely in memory:
+1. The user submits nutrition preferences from the frontend.
+2. The Node.js gateway receives and forwards the payload to FastAPI.
+3. FastAPI calculates BMI, calorie targets, and meal composition.
+4. Unsafe or incompatible foods are filtered out.
+5. Suitable foods are ranked and assembled into daily meal plans.
+6. The final result is returned to Node.js.
+7. Node.js stores the plan in MongoDB and sends the response to the frontend.
 
-Input Adapter Pass: Maps variables sent from Node.js (e.g., translating weight_kg attributes to core parameters).
+---
 
-Selection Optimization Guard: Implements a strict 1 Grain Base + 1 Accompaniment pairing restriction inside select_food_combination() to prevent unpractical match errors (like serving two liquid dishes together or two dry roti discs without a side).
+## Data Models
 
-Dynamic Recency Decay Engine: Tracks protein attributes (Fish, Chicken, Egg) consumed during the current simulated day iteration and injects a temporary -45 point suppression penalty into those categories for the next 24-hour cycle. This forces underrepresented items like chicken to cleanly rotate to the top of the selection stack.
+### Meal Plan Document
 
-📊 RankingService (app/services/ranking_service.py)
-Computes a dynamic suitability matrix from 0.0 to 100.0 for every safe row in your database:
-
-Geographic Affinity Boost: Matches row attributes against selected parameters (state and region), injecting score multipliers for localized options (e.g., prioritizing West Bengal items when East India maps are active).
-
-Goal Bounding Gates: Dynamically drops or rewards foods based on nutrient density maps. If a user sets their parameters to "Weight Loss," foods containing high saturated fats take a dedicated -30 point penalty check, and dishes matching cheat strings (like "Biryani") receive a -50 point deduction gate to block calorie-dense options from monopolizing high scores.
-
-Pathology Compatibility Matching: Maps parameters against clinical guidelines, altering row suitability thresholds for specialized flags like Diabetes or Hypertension.
-
-🛡️ Defensive Engineering Filters
-AllergyService & DiseaseService: Run structural boundary filtering via pandas masking blocks before any heuristic calculations run. If a food item contains an active allergen array token, it is completely removed from memory.
-
-Cosmetic Masking Adapter: Cleanses text encodings during serialization, stripping character rendering anomalies (like â) and mapping raw empty string inputs ("") into clean, queryable "Global" or "All States" presentation tokens before data reaches MongoDB or the React UI components.
-
-💾 Database Document Topology (Mongoose / MongoDB)
-Calculated snap records are tracked within MongoDB under a highly nested document frame to protect data isolation over time:
-
-JavaScript
+```javascript
 const nutriPlanSchema = new mongoose.Schema({
-user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-planNumber: { type: Number, required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  planNumber: { type: Number, required: true },
 
-profileSnapshot: {
-age: Number,
-weight: Number,
-height: Number,
-gender: String,
-goal: String,
-food_preference: String,
-medical_conditions: [String],
-allergies: [String],
-activity_level: String,
-bmi: Number,
-bmi_category: String, // Calculated by Python Layer
-tdee: Number,
-days: Number,
-region: String, // Injected Fallback Token
-state: String // Injected Fallback Token
-},
+  profileSnapshot: {
+    age: Number,
+    weight: Number,
+    height: Number,
+    gender: String,
+    goal: String,
+    food_preference: String,
+    medical_conditions: [String],
+    allergies: [String],
+    activity_level: String,
+    bmi: Number,
+    bmi_category: String,
+    tdee: Number,
+    days: Number,
+    region: String,
+    state: String
+  },
 
-daily_targets: {
-target_calories: Number,
-target_protein: Number,
-target_fat: Number,
-target_carbs: Number
-},
+  daily_targets: {
+    target_calories: Number,
+    target_protein: Number,
+    target_fat: Number,
+    target_carbs: Number
+  },
 
-days: [
-{
-dayNumber: Number,
-meals: [
-{
-mealType: { type: String, enum: ["Breakfast", "Lunch", "Dinner"] },
-foods: [
-{
-name: String,
-calories: Number,
-protein: Number,
-fat: Number,
-carbs: Number
-}
-]
-}
-]
-}
-],
-createdAt: { type: Date, default: Date.now }
+  days: [
+    {
+      dayNumber: Number,
+      meals: [
+        {
+          mealType: { type: String, enum: ["Breakfast", "Lunch", "Dinner"] },
+          foods: [
+            {
+              name: String,
+              calories: Number,
+              protein: Number,
+              fat: Number,
+              carbs: Number
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  createdAt: { type: Date, default: Date.now }
 });
-🛠️ Verification & Troubleshooting
-If your technical review panel notices issues or if requests drop down the integration bridge, verify these checkpoints:
+```
 
-The Trailing Slash Rule: FastAPI requires rigid trailing slash patterns. Ensure Node.js calls http://localhost:8000/api/meal-plan/generate/ with the trailing slash included to bypass 404 router exceptions.
+---
 
-Pydantic Validation Guard exceptions: If you modify input parameters on the UI side, update both UserProfileSchema and PythonMLMealPlanResponseSchema inside the Python layer. If keys don't match, Uvicorn will trigger a 422 Unprocessable Entity or a ResponseValidationError traceback block.
+## Core Services
 
-Database Population Check: If meal cards appear blank on your client screens, verify the days property inside your MongoDB document. If it reads Array (empty), check your Python adapter return statement to confirm data properties are named exactly "days", aligning with the Express structural destructuring lines.
+### Meal Generator
+
+- normalizes input fields
+- coordinates meal assembly
+- ensures each day has a structured output
+- applies meal selection rules
+
+### BMI Service
+
+- calculates BMI from weight and height
+- classifies BMI into a category
+
+### Calorie Service
+
+- estimates BMR
+- derives TDEE from activity level
+- prepares daily targets
+
+### Allergy Service
+
+- removes foods containing allergen matches
+- prevents unsafe recommendations
+
+### Disease Service
+
+- applies medical-condition-based exclusions
+- limits foods that conflict with health rules
+
+### Ranking Service
+
+- scores food rows based on region, preference, and goal
+- promotes foods with better fit for the target profile
+- reduces scores for unsuitable items
+
+---
+
+## Input Rules
+
+- `weight` and `height` must be numeric
+- `days` should be a positive integer
+- `medical_conditions` must be an array
+- `allergies` must be an array
+- `goal` should match supported goal labels
+- `food_preference` should match the supported diet type
+- `region` and `state` should be passed consistently
+
+---
+
+## Troubleshooting
+
+### FastAPI Endpoint Not Found
+
+Verify the endpoint path and ensure the gateway is calling the correct route.
+
+### Validation Errors
+
+If the API returns a 422 error, check that the JSON keys and data types match the schema expected by the backend.
+
+### Empty Meal Output
+
+If the UI renders empty meal cards, confirm that the response includes a populated `days` array.
+
+### MongoDB Connection Problems
+
+- verify the MongoDB URI
+- confirm the database server is running
+- check credentials and network access
+
+### Python Service Startup Problems
+
+- activate the virtual environment
+- install dependencies
+- confirm the FastAPI app module path is correct
+
+---
+
+## Future Improvements
+
+- grocery list generation
+- weekly meal analytics
+- PDF export for meal plans
+- ingredient-level replacement suggestions
+- multilingual support
+- nutrition history charts
+- pantry-based recommendations
+
+---
+
+## Notes
+
+- Keep field names consistent across frontend, Node.js, Python, and MongoDB.
+- Maintain consistent units for weight, height, and nutrition values.
+- Use the same response shape in every service layer to avoid serialization issues.
