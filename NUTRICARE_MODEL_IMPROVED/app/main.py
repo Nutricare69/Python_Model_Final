@@ -14,7 +14,9 @@
 # 4. Python processes vectors, ranks candidates via ML models, and responds 
 #    directly back to Node.js without writing to any database.
 # ============================================================================
+from os import getenv
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -30,6 +32,8 @@ from app.api.feedback import router as feedback_router
 # Import application metadata constants
 from app.utils.constants import APP_NAME, APP_VERSION
 
+load_dotenv()  # Load environment variables from .env file
+
 # ==========================================
 # FASTAPI APP INSTANCE
 # ==========================================
@@ -44,9 +48,11 @@ app = FastAPI(
 # CORS MIDDLEWARE configuration
 # ==========================================
 # Allows safe internal network packet transactions from your Node.js Gateway.
+
+ALLOWED_ORIGIN = getenv("ALLOWED_ORIGIN", "*")  # Default to allow all origins if not set
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production deployment, set explicit Node.js backend cluster IPs
+    allow_origins=[ALLOWED_ORIGIN],  # For production deployment, set explicit Node.js backend cluster IPs
     allow_credentials=True,
     allow_methods=["*"],  # Permits standard HTTP POST methods used for vector delivery
     allow_headers=["*"]
