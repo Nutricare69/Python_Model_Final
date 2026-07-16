@@ -529,4 +529,4 @@ If the UI renders empty meal cards, confirm that the response includes a populat
 - Maintain consistent units for weight, height, and nutrition values.
 - Use the same response shape in every service layer to avoid serialization issues.
 
-## Contribution in this repository: Arnab Jana
+## Contribution in this repository: Suvajit Roy; Enhanced & Optimized from past repositories created by Arnab Jana.
