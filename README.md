@@ -1,3 +1,21 @@
+# 🥗 NUTRI-CARE: AI-Powered Personalized Indian Diet Planner API
+### Final Year Group Project | Machine Learning + FastAPI
+
+<h1 align="center">🥗 NUTRI-CARE API</h1>
+
+<h3 align="center">AI-Powered Indian Diet Planner</h3>
+
+<p align="center">
+
+<img src="https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi"/>
+<img src="https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python"/>
+<!-- <img src="https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=jsonwebtokens"/> -->
+<img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge"/>
+
+</p>
+
+<hr>
+
 # AI-Driven Personalized Nutrition & Meal Recommendation System
 
 An end-to-end personalized nutrition platform that creates structured meal plans using a React client, a Node.js orchestration layer, a Python FastAPI compute service, and MongoDB storage.
@@ -510,3 +528,5 @@ If the UI renders empty meal cards, confirm that the response includes a populat
 - Keep field names consistent across frontend, Node.js, Python, and MongoDB.
 - Maintain consistent units for weight, height, and nutrition values.
 - Use the same response shape in every service layer to avoid serialization issues.
+
+## Contribution in this repository: Suvajit Roy; Enhanced & Optimized from past repositories created by Arnab Jana.

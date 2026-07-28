@@ -1,6 +1,12 @@
-Copyright (c) 2026 Suvajit Roy and Arnab Jana (NutriCare AI)
+MIT License
 
-All rights reserved.
+Copyright (c) 2026 Arnab Jana and Suvajit Roy
+
+Project: NUTRI-CARE – AI-Powered Indian Diet Planner  
+Repository Maintainer: Arnab Jana and Suvajit Roy 
+(Arnab) Role: Project Lead, Documentation, and ML Model Development
+(Suvajit) Role: Technical Lead, Web Developer, ML Model improvisation and enhancements
+Project Type: Final Year Group Project
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -12,10 +18,15 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
+Acknowledgement:
+This repository represents a Final Year Group Project titled "NUTRI-CARE".
+Arnab Jana serves as the project leadership, documentation, and machine learning developer and as maintainer along with Suvajit Roy as the maintainer of this repository and Web Developer and responsible for enhancements of this repository and is responsible for the model enhancements, bug fixes and improved model efficiencies.
+model development.
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
