@@ -49,12 +49,14 @@ app = FastAPI(
 # ==========================================
 # Allows safe internal network packet transactions from your Node.js Gateway.
 
-ALLOWED_ORIGIN = getenv("ALLOWED_ORIGIN", "*")  # Default to allow all origins if not set
+raw_origins = os.getenv("ALLOWED_ORIGIN", "http://localhost:3000")
+origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ALLOWED_ORIGIN],  # For production deployment, set explicit Node.js backend cluster IPs
+    allow_origins=origins,      # Handles http:// and https:// origins cleanly
     allow_credentials=True,
-    allow_methods=["*"],  # Permits standard HTTP POST methods used for vector delivery
+    allow_methods=["*"],
     allow_headers=["*"]
 )
 
