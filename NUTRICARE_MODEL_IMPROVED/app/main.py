@@ -14,7 +14,7 @@
 # 4. Python processes vectors, ranks candidates via ML models, and responds 
 #    directly back to Node.js without writing to any database.
 # ============================================================================
-from os import getenv
+import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
