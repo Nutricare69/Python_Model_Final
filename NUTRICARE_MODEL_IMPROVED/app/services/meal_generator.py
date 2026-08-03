@@ -86,7 +86,7 @@ class MealGenerator:
         return ranked_df.to_dict(orient="records")
 
     def prepare_food_candidates(self, user_profile: Dict) -> Dict[str, List[Dict]]:
-        """Filters foods and pre-ranks them into python dict lists once per request."""
+        """Filters foods, pre-ranks them, and caps to top candidates per meal."""
         foods_df = self.load_food_dataset()
         filtered_df = self.apply_filters(foods_df, user_profile)
 
@@ -96,14 +96,13 @@ class MealGenerator:
         s_df = filtered_df[filtered_df["meal_type"].str.lower().isin(["snacks", "snack"])]
         d_df = filtered_df[filtered_df["meal_type"].str.lower() == "dinner"]
 
-        # Rank candidates once
+        # Rank and cap to top 150 candidates per meal to optimize CPU execution
         return {
-            "breakfast": self.rank_foods(b_df, user_profile),
-            "lunch": self.rank_foods(l_df, user_profile),
-            "snacks": self.rank_foods(s_df, user_profile),
-            "dinner": self.rank_foods(d_df, user_profile)
+            "breakfast": self.rank_foods(b_df, user_profile)[:150],
+            "lunch": self.rank_foods(l_df, user_profile)[:150],
+            "snacks": self.rank_foods(s_df, user_profile)[:150],
+            "dinner": self.rank_foods(d_df, user_profile)[:150]
         }
-
     def calculate_meal_nutrition(self, selected_foods: List[dict]) -> Dict[str, float]:
         calories = sum(float(f.get("calories", 0)) for f in selected_foods)
         protein = sum(float(f.get("protein", 0)) for f in selected_foods)
