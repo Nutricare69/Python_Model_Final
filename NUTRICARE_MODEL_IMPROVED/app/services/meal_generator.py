@@ -1,8 +1,9 @@
 # ============================================================================
 # FILE: app/services/meal_generator.py
-# ROLE: CORE COMPUTATION ORCHESTRATION SERVICE (With Dynamic Alternative Fallbacks)
+# ROLE: CORE COMPUTATION ORCHESTRATION SERVICE (Ultra-Fast Native Python Execution)
 # ============================================================================
 
+import time
 from typing import Dict, List
 import pandas as pd
 
@@ -20,7 +21,7 @@ from app.utils.constants import DATASET_PATH
 class MealGenerator:
     """
     Orchestrates the lifecycle generation sequence for compiling personalized 
-    diet configurations completely in-memory with dynamic attribute rotation.
+    diet configurations completely in-memory using native Python dictionary operations.
     """
 
     def __init__(self, dataset_path: str = DATASET_PATH):
@@ -67,40 +68,40 @@ class MealGenerator:
     def apply_filters(self, foods_df: pd.DataFrame, user_profile: Dict) -> pd.DataFrame:
         filtered_df = foods_df.copy()
         
+        # High-speed Veg fish keyword filtering via list evaluation
         if user_profile.get("diet_type") == "Veg" or user_profile.get("food_preference") == "Veg":
-            fish_keywords = ["paturi", "mach", "fish", "chingri", "bhetki", "pabda", "rui", "sardine", "mackerel", "tuna"]
-            mask = filtered_df["canonical_food_name"].str.lower().str.contains('|'.join(fish_keywords))
-            filtered_df = filtered_df[~mask]
+            fish_keywords = ("paturi", "mach", "fish", "chingri", "bhetki", "pabda", "rui", "sardine", "mackerel", "tuna")
+            names = filtered_df["canonical_food_name"].astype(str).str.lower().tolist()
+            safe_mask = [not any(k in name for k in fish_keywords) for name in names]
+            filtered_df = filtered_df[safe_mask]
 
         filtered_df = self.apply_diet_filter(filtered_df, user_profile["diet_type"])
         filtered_df = self.apply_allergy_filter(filtered_df, user_profile.get("allergies", []))
         filtered_df = self.apply_disease_filter(filtered_df, user_profile.get("medical_conditions", []))
         return filtered_df.reset_index(drop=True)
 
-    def get_breakfast_foods(self, foods_df: pd.DataFrame) -> pd.DataFrame:
-        return foods_df[foods_df["meal_type"].str.lower() == "breakfast"]
+    def rank_foods(self, foods_df: pd.DataFrame, user_profile: Dict) -> List[Dict]:
+        """Ranks foods and returns native Python dict records immediately."""
+        ranked_df = self.ranking_service.rank_foods(foods_df, user_profile)
+        return ranked_df.to_dict(orient="records")
 
-    def get_lunch_foods(self, foods_df: pd.DataFrame) -> pd.DataFrame:
-        return foods_df[foods_df["meal_type"].str.lower() == "lunch"]
-
-    def get_snack_foods(self, foods_df: pd.DataFrame) -> pd.DataFrame:
-        return foods_df[foods_df["meal_type"].str.lower().isin(["snacks", "snack"])]
-
-    def get_dinner_foods(self, foods_df: pd.DataFrame) -> pd.DataFrame:
-        return foods_df[foods_df["meal_type"].str.lower() == "dinner"]
-
-    def rank_foods(self, foods_df: pd.DataFrame, user_profile: Dict) -> pd.DataFrame:
-        return self.ranking_service.rank_foods(foods_df, user_profile)
-
-    def prepare_food_candidates(self, user_profile: Dict) -> Dict[str, pd.DataFrame]:
+    def prepare_food_candidates(self, user_profile: Dict) -> Dict[str, List[Dict]]:
+        """Filters foods and pre-ranks them into python dict lists once per request."""
         foods_df = self.load_food_dataset()
         filtered_df = self.apply_filters(foods_df, user_profile)
 
+        # Separate meal types
+        b_df = filtered_df[filtered_df["meal_type"].str.lower() == "breakfast"]
+        l_df = filtered_df[filtered_df["meal_type"].str.lower() == "lunch"]
+        s_df = filtered_df[filtered_df["meal_type"].str.lower().isin(["snacks", "snack"])]
+        d_df = filtered_df[filtered_df["meal_type"].str.lower() == "dinner"]
+
+        # Rank candidates once
         return {
-            "breakfast": self.get_breakfast_foods(filtered_df),
-            "lunch": self.get_lunch_foods(filtered_df),
-            "snacks": self.get_snack_foods(filtered_df),
-            "dinner": self.get_dinner_foods(filtered_df)
+            "breakfast": self.rank_foods(b_df, user_profile),
+            "lunch": self.rank_foods(l_df, user_profile),
+            "snacks": self.rank_foods(s_df, user_profile),
+            "dinner": self.rank_foods(d_df, user_profile)
         }
 
     def calculate_meal_nutrition(self, selected_foods: List[dict]) -> Dict[str, float]:
@@ -118,7 +119,7 @@ class MealGenerator:
             "fiber": round(fiber, 1)
         }
 
-    def format_food(self, food_row) -> Dict:
+    def format_food(self, food_row: dict) -> Dict:
         def clean_encoding(text: str) -> str:
             if not text:
                 return ""
@@ -142,12 +143,9 @@ class MealGenerator:
             "fiber_g": float(food_row.get("fiber_g", 0))
         }
 
-    def select_food_combination(self, ranked_df: pd.DataFrame, target_calories: float, food_count: int = 2) -> List[Dict]:
-        if ranked_df.empty:
+    def select_food_combination(self, food_records: List[Dict], target_calories: float, food_count: int = 2) -> List[Dict]:
+        if not food_records:
             return []
-
-        sorted_df = ranked_df.sort_values(by="suitability_score", ascending=False)
-        food_records = sorted_df.to_dict(orient="records")
 
         liquid_keywords = ("soup", "dal", "fry", "curry", "stew", "rasam", "sambar", "shorba", "gravy", "jhol", "amti", "pulusu")
         grain_keywords = ("bhaat", "rice", "roti", "rotlo", "dalia", "khichdi", "panta bhat", "upma", "dosa", "idli", "chapati", "paratha", "millet", "pongal", "puri", "luchi")
@@ -234,9 +232,9 @@ class MealGenerator:
         score = 100.0 - ((difference / target_calories) * 100.0)
         return round(max(score, 0.0), 2)
 
-    def build_meal(self, ranked_df: pd.DataFrame, meal_name: str, target_calories: float, 
+    def build_meal(self, food_records: List[Dict], meal_name: str, target_calories: float, 
                    target_protein: float, target_carbs: float, target_fat: float, target_fiber: float) -> Dict:
-        selected_foods = self.select_food_combination(ranked_df, target_calories, food_count=2)
+        selected_foods = self.select_food_combination(food_records, target_calories, food_count=2)
         nutrition = self.calculate_meal_nutrition(selected_foods)
         meal_score = self.calculate_meal_match_score(nutrition["calories"], target_calories)
 
@@ -252,53 +250,32 @@ class MealGenerator:
             "meal_match_score": meal_score
         }
 
-    def generate_breakfast(self, breakfast_df: pd.DataFrame, calorie_result: CalorieResult) -> Dict:
-        return self.build_meal(
-            ranked_df=breakfast_df, meal_name="Breakfast",
-            target_calories=calorie_result.target_calories * 0.25,
-            target_protein=calorie_result.protein_target_g * 0.25,
-            target_carbs=calorie_result.carb_target_g * 0.25,
-            target_fat=calorie_result.fat_target_g * 0.25,
-            target_fiber=calorie_result.fiber_target_g * 0.25
-        )
-
-    def generate_lunch(self, lunch_df: pd.DataFrame, calorie_result: CalorieResult) -> Dict:
-        return self.build_meal(
-            ranked_df=lunch_df, meal_name="Lunch",
-            target_calories=calorie_result.target_calories * 0.35,
-            target_protein=calorie_result.protein_target_g * 0.35,
-            target_carbs=calorie_result.carb_target_g * 0.35,
-            target_fat=calorie_result.fat_target_g * 0.35,
-            target_fiber=calorie_result.fiber_target_g * 0.35
-        )
-
-    def generate_snacks(self, snacks_df: pd.DataFrame, calorie_result: CalorieResult) -> Dict:
-        return self.build_meal(
-            ranked_df=snacks_df, meal_name="Snacks",
-            target_calories=calorie_result.target_calories * 0.15,
-            target_protein=calorie_result.protein_target_g * 0.15,
-            target_carbs=calorie_result.carb_target_g * 0.15,
-            target_fat=calorie_result.fat_target_g * 0.15,
-            target_fiber=calorie_result.fiber_target_g * 0.15
-        )
-
-    def generate_dinner(self, dinner_df: pd.DataFrame, calorie_result: CalorieResult) -> Dict:
-        return self.build_meal(
-            ranked_df=dinner_df, meal_name="Dinner",
-            target_calories=calorie_result.target_calories * 0.25,
-            target_protein=calorie_result.protein_target_g * 0.25,
-            target_carbs=calorie_result.carb_target_g * 0.25,
-            target_fat=calorie_result.fat_target_g * 0.25,
-            target_fiber=calorie_result.fiber_target_g * 0.25
-        )
-
     def get_food_ids(self, foods: List[Dict]) -> set:
         return {food["food_id"] for food in foods}
 
-    def remove_used_foods(self, foods_df: pd.DataFrame, used_food_ids: set) -> pd.DataFrame:
-        if not used_food_ids:
-            return foods_df
-        return foods_df[~foods_df["food_id"].astype(str).isin(used_food_ids)].reset_index(drop=True)
+    def filter_available_foods(self, food_records: List[Dict], used_food_ids: set, recent_proteins: List[str]) -> List[Dict]:
+        """Applies recency decay and excludes used items using Python dicts."""
+        available = []
+        for row in food_records:
+            fid = str(row.get("food_id", ""))
+            if fid in used_food_ids:
+                continue
+
+            row_copy = dict(row)
+            if recent_proteins:
+                score = row_copy.get("suitability_score", 0.0)
+                name = str(row_copy.get("canonical_food_name", "")).lower()
+                for protein in recent_proteins:
+                    if protein in name:
+                        score -= 45.0
+                row_copy["suitability_score"] = max(0.0, score)
+
+            available.append(row_copy)
+
+        if recent_proteins:
+            available.sort(key=lambda x: x.get("suitability_score", 0.0), reverse=True)
+
+        return available
 
     def calculate_day_scorecard(self, breakfast: Dict, lunch: Dict, snacks: Dict, dinner: Dict) -> Dict:
         average_match = round((
@@ -327,36 +304,24 @@ class MealGenerator:
             "fiber": round(fiber, 1)
         }
 
-    def generate_day_plan(self, day_number: int, food_candidates: Dict, calorie_result: CalorieResult, 
+    def generate_day_plan(self, day_number: int, food_candidates: Dict[str, List[Dict]], calorie_result: CalorieResult, 
                           used_food_ids: set, recent_proteins: List[str], user_profile: Dict) -> Dict:
-        b_df = self.remove_used_foods(food_candidates["breakfast"], used_food_ids)
-        l_df = self.remove_used_foods(food_candidates["lunch"], used_food_ids)
-        s_df = self.remove_used_foods(food_candidates["snacks"], used_food_ids)
-        d_df = self.remove_used_foods(food_candidates["dinner"], used_food_ids)
+        
+        b_foods = self.filter_available_foods(food_candidates["breakfast"], used_food_ids, recent_proteins)
+        l_foods = self.filter_available_foods(food_candidates["lunch"], used_food_ids, recent_proteins)
+        s_foods = self.filter_available_foods(food_candidates["snacks"], used_food_ids, recent_proteins)
+        d_foods = self.filter_available_foods(food_candidates["dinner"], used_food_ids, recent_proteins)
 
-        def apply_recency_decay(df: pd.DataFrame) -> pd.DataFrame:
-            ranked = self.rank_foods(df, user_profile)
-            if not recent_proteins or ranked.empty:
-                return ranked
-            
-            # High-performance native list comprehension replacing DataFrame.apply
-            records = ranked.to_dict(orient="records")
-            new_scores = []
-            for row in records:
-                score = row.get("suitability_score", 0.0)
-                name = str(row.get("canonical_food_name", "")).lower()
-                for protein in recent_proteins:
-                    if protein in name:
-                        score -= 45.0
-                new_scores.append(max(0.0, score))
+        target_cal = calorie_result.target_calories
+        target_prot = calorie_result.protein_target_g
+        target_carb = calorie_result.carb_target_g
+        target_fat = calorie_result.fat_target_g
+        target_fib = calorie_result.fiber_target_g
 
-            ranked["suitability_score"] = new_scores
-            return ranked.sort_values(by="suitability_score", ascending=False).reset_index(drop=True)
-
-        breakfast = self.generate_breakfast(apply_recency_decay(b_df), calorie_result)
-        lunch = self.generate_lunch(apply_recency_decay(l_df), calorie_result)
-        snacks = self.generate_snacks(apply_recency_decay(s_df), calorie_result)
-        dinner = self.generate_dinner(apply_recency_decay(d_df), calorie_result)
+        breakfast = self.build_meal(b_foods, "Breakfast", target_cal * 0.25, target_prot * 0.25, target_carb * 0.25, target_fat * 0.25, target_fib * 0.25)
+        lunch = self.build_meal(l_foods, "Lunch", target_cal * 0.35, target_prot * 0.35, target_carb * 0.35, target_fat * 0.35, target_fib * 0.35)
+        snacks = self.build_meal(s_foods, "Snacks", target_cal * 0.15, target_prot * 0.15, target_carb * 0.15, target_fat * 0.15, target_fib * 0.15)
+        dinner = self.build_meal(d_foods, "Dinner", target_cal * 0.25, target_prot * 0.25, target_carb * 0.25, target_fat * 0.25, target_fib * 0.25)
 
         used_food_ids.update(self.get_food_ids(breakfast["foods"]))
         used_food_ids.update(self.get_food_ids(lunch["foods"]))
@@ -406,15 +371,22 @@ class MealGenerator:
         }
 
     def generate_multi_day_plan(self, user_profile: Dict, days: int) -> Dict:
+        t_sub0 = time.perf_counter()
         metabolic_analysis = self.generate_metabolic_analysis(user_profile)
         calorie_result = metabolic_analysis["calorie_result"]
+        t_sub1 = time.perf_counter()
+        print(f"  └── [STEP 2.1] Metabolic Analysis: {t_sub1 - t_sub0:.4f}s")
+
         food_candidates = self.prepare_food_candidates(user_profile)
+        t_sub2 = time.perf_counter()
+        print(f"  └── [STEP 2.2] Candidate Preparation & Initial Ranking: {t_sub2 - t_sub1:.4f}s")
 
         used_food_ids = set()
         recent_proteins = []  
         day_plans = []
 
         for day in range(1, days + 1):
+            t_day = time.perf_counter()
             day_plan = self.generate_day_plan(
                 day_number=day,
                 food_candidates=food_candidates,
@@ -424,7 +396,9 @@ class MealGenerator:
                 user_profile=user_profile
             )
             day_plans.append(day_plan)
+            print(f"  └── [STEP 2.3] Day {day} Generation: {time.perf_counter() - t_day:.4f}s")
 
+        t_sub3 = time.perf_counter()
         weekly_summary = self.generate_weekly_summary(day_plans, used_food_ids)
 
         return {
@@ -457,9 +431,6 @@ class MealGenerator:
             "snacks": {"percentage": 15, "calories": round(target_calories * 0.15, 1)},
             "dinner": {"percentage": 25, "calories": round(target_calories * 0.25, 1)}
         }
-
-    def apply_advanced_diversity_rules(self, meal_plan: Dict) -> Dict:
-        return meal_plan
 
     def build_metabolic_summary(self, metabolic_analysis: Dict) -> Dict:
         bmi_result = metabolic_analysis["bmi_result"]
@@ -496,15 +467,13 @@ class MealGenerator:
 
         days_output = [self.format_day_output(day) for day in generated_plan["days"]]
 
-        response = {
+        return {
             "user_overview": self.build_user_overview(user_profile),
             "metabolic_analysis": self.build_metabolic_summary(metabolic_analysis),
             "meal_distribution": self.build_meal_distribution(calorie_result.target_calories),
             "days": days_output,
             "weekly_summary": generated_plan["weekly_summary"]
         }
-
-        return self.apply_advanced_diversity_rules(response)
 
     def generate_meal_plan(self, user_profile: Dict) -> Dict:
         self.validate_user_profile(user_profile)
