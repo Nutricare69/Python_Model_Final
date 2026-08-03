@@ -10,6 +10,7 @@ import pandas as pd
 class RankingService:
     """
     PURPOSE: Heuristically ranks foods for a user based on multiple structural criteria.
+    PERFORMANCE: Uses high-speed dict iteration instead of slow Pandas DataFrame.apply.
     """
 
     GOAL_SCORE_COLUMNS = {
@@ -27,7 +28,7 @@ class RankingService:
             return default
 
     @staticmethod
-    def calculate_region_match(food_row, user_region: str) -> float:
+    def calculate_region_match(food_row: dict, user_region: str) -> float:
         if not user_region:
             return 50.0
         if str(food_row.get("region", "")).lower() == user_region.lower():
@@ -35,7 +36,7 @@ class RankingService:
         return 50.0
 
     @staticmethod
-    def calculate_state_match(food_row, user_state: str) -> float:
+    def calculate_state_match(food_row: dict, user_state: str) -> float:
         if not user_state:
             return 50.0
         if str(food_row.get("state", "")).lower() == user_state.lower():
@@ -43,14 +44,14 @@ class RankingService:
         return 40.0
 
     @classmethod
-    def calculate_goal_match(cls, food_row, goal: str) -> float:
+    def calculate_goal_match(cls, food_row: dict, goal: str) -> float:
         score_column = cls.GOAL_SCORE_COLUMNS.get(goal.lower(), None)
         if score_column is None:
             return 75.0
         return min(cls._safe_float(food_row.get(score_column, 5)) * 10, 100)
 
     @staticmethod
-    def calculate_health_match(food_row, medical_conditions: List[str]) -> float:
+    def calculate_health_match(food_row: dict, medical_conditions: List[str]) -> float:
         if not medical_conditions:
             return 100.0
 
@@ -67,7 +68,7 @@ class RankingService:
         return round(sum(scores) / len(scores), 2)
 
     @staticmethod
-    def calculate_nutrition_score(food_row) -> float:
+    def calculate_nutrition_score(food_row: dict) -> float:
         protein_score = min((RankingService._safe_float(food_row.get("protein", 0)) / 30) * 100, 100)
         fiber_score = min((RankingService._safe_float(food_row.get("fiber_g", 0)) / 15) * 100, 100)
         
@@ -83,7 +84,7 @@ class RankingService:
         return round(score, 2)
 
     @staticmethod
-    def calculate_calorie_match(food_row, goal: str) -> float:
+    def calculate_calorie_match(food_row: dict, goal: str) -> float:
         calories = RankingService._safe_float(food_row.get("calories", 0))
         goal = goal.lower()
 
@@ -104,7 +105,7 @@ class RankingService:
         return 75.0
 
     @classmethod
-    def calculate_food_score(cls, food_row, user_profile: Dict) -> float:
+    def calculate_food_score(cls, food_row: dict, user_profile: Dict) -> float:
         nutrition_score = cls.calculate_nutrition_score(food_row)
         goal_match_score = cls.calculate_goal_match(food_row, user_profile["goal"])
         health_match_score = cls.calculate_health_match(food_row, user_profile.get("medical_conditions", []))
@@ -135,13 +136,17 @@ class RankingService:
 
     @classmethod
     def rank_foods(cls, foods_df: pd.DataFrame, user_profile: Dict) -> pd.DataFrame:
+        if foods_df.empty:
+            return foods_df
+
         ranked_df = foods_df.copy()
-        ranked_df["suitability_score"] = ranked_df.apply(
-            lambda row: cls.calculate_food_score(row, user_profile),
-            axis=1
-        )
-        ranked_df = ranked_df.sort_values(by="suitability_score", ascending=False).reset_index(drop=True)
-        return ranked_df
+        
+        # High-performance native dictionary conversion
+        records = ranked_df.to_dict(orient="records")
+        scores = [cls.calculate_food_score(row, user_profile) for row in records]
+        
+        ranked_df["suitability_score"] = scores
+        return ranked_df.sort_values(by="suitability_score", ascending=False).reset_index(drop=True)
 
     @classmethod
     def get_top_foods(cls, ranked_df: pd.DataFrame, top_n: int = 100) -> pd.DataFrame:

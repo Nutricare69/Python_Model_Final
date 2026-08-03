@@ -20,8 +20,7 @@ from app.utils.constants import DATASET_PATH
 class MealGenerator:
     """
     Orchestrates the lifecycle generation sequence for compiling personalized 
-    diet configurations completely in-memory with dynamic attribute rotation
-    and automated dual-choice alternative fallback pairing generation.
+    diet configurations completely in-memory with dynamic attribute rotation.
     """
 
     def __init__(self, dataset_path: str = DATASET_PATH):
@@ -68,7 +67,6 @@ class MealGenerator:
     def apply_filters(self, foods_df: pd.DataFrame, user_profile: Dict) -> pd.DataFrame:
         filtered_df = foods_df.copy()
         
-        # SAFETY DATA CHECK CORRECTION GATES
         if user_profile.get("diet_type") == "Veg" or user_profile.get("food_preference") == "Veg":
             fish_keywords = ["paturi", "mach", "fish", "chingri", "bhetki", "pabda", "rui", "sardine", "mackerel", "tuna"]
             mask = filtered_df["canonical_food_name"].str.lower().str.contains('|'.join(fish_keywords))
@@ -144,19 +142,11 @@ class MealGenerator:
             "fiber_g": float(food_row.get("fiber_g", 0))
         }
 
-    # =========================================================================
-    # OPTIMIZED SELECTION ENGINE LOOP
-    # =========================================================================
     def select_food_combination(self, ranked_df: pd.DataFrame, target_calories: float, food_count: int = 2) -> List[Dict]:
-        """
-        OPTIMIZED: Converted DataFrame to native Python dicts once to bypass slow Pandas iterrows().
-        Greedily assembles optimal candidates up to a dynamically assigned safe energy bounding limit.
-        """
         if ranked_df.empty:
             return []
 
         sorted_df = ranked_df.sort_values(by="suitability_score", ascending=False)
-        # Convert DataFrame to list of Python dicts ONCE for high-speed iterating
         food_records = sorted_df.to_dict(orient="records")
 
         liquid_keywords = ("soup", "dal", "fry", "curry", "stew", "rasam", "sambar", "shorba", "gravy", "jhol", "amti", "pulusu")
@@ -200,7 +190,6 @@ class MealGenerator:
                     current_id = str(row.get("food_id", ""))
                     alt_name = ""
 
-                    # High-speed inner scan using dictionary items
                     for alt_row in food_records:
                         alt_id = str(alt_row.get("food_id", ""))
                         if alt_id == current_id:
@@ -347,18 +336,21 @@ class MealGenerator:
 
         def apply_recency_decay(df: pd.DataFrame) -> pd.DataFrame:
             ranked = self.rank_foods(df, user_profile)
-            if not recent_proteins:
+            if not recent_proteins or ranked.empty:
                 return ranked
             
-            def adjust_score(row):
-                score = row["suitability_score"]
+            # High-performance native list comprehension replacing DataFrame.apply
+            records = ranked.to_dict(orient="records")
+            new_scores = []
+            for row in records:
+                score = row.get("suitability_score", 0.0)
                 name = str(row.get("canonical_food_name", "")).lower()
                 for protein in recent_proteins:
                     if protein in name:
-                        score -= 45.0  
-                return max(0.0, score)
+                        score -= 45.0
+                new_scores.append(max(0.0, score))
 
-            ranked["suitability_score"] = ranked.apply(adjust_score, axis=1)
+            ranked["suitability_score"] = new_scores
             return ranked.sort_values(by="suitability_score", ascending=False).reset_index(drop=True)
 
         breakfast = self.generate_breakfast(apply_recency_decay(b_df), calorie_result)
