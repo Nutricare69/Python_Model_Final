@@ -1,6 +1,6 @@
 # ============================================================================
 # FILE: app/services/ranking_service.py
-# ROLE: HEURISTIC RANKING & FALLBACK COMPUTE ENGINE (Microservices Architecture)
+# ROLE: HEURISTIC RANKING & FALLBACK COMPUTE ENGINE
 # ============================================================================
 
 from typing import Dict, List
@@ -8,11 +8,6 @@ import pandas as pd
 
 
 class RankingService:
-    """
-    PURPOSE: Heuristically ranks foods for a user based on multiple structural criteria.
-    PERFORMANCE: Uses high-speed dict iteration instead of slow Pandas DataFrame.apply.
-    """
-
     GOAL_SCORE_COLUMNS = {
         "weight loss": "weight_loss_score",
         "weight gain": "muscle_gain_score",
@@ -140,14 +135,8 @@ class RankingService:
             return foods_df
 
         ranked_df = foods_df.copy()
-        
-        # High-performance native dictionary conversion
         records = ranked_df.to_dict(orient="records")
         scores = [cls.calculate_food_score(row, user_profile) for row in records]
         
         ranked_df["suitability_score"] = scores
         return ranked_df.sort_values(by="suitability_score", ascending=False).reset_index(drop=True)
-
-    @classmethod
-    def get_top_foods(cls, ranked_df: pd.DataFrame, top_n: int = 100) -> pd.DataFrame:
-        return ranked_df.head(top_n)

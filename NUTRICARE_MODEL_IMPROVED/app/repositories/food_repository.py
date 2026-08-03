@@ -9,23 +9,15 @@ import pandas as pd
 
 class FoodRepository:
     """
-    PURPOSE: Ingests, validates, and provisions the core food matrix for machine 
-             learning ranking and multi-day meal orchestration.
-    PERFORMANCE: Uses class-level Singleton memory caching to avoid disk I/O per request.
+    In-memory feature bank for ML scoring. Uses a class-level Singleton 
+    cache to prevent reading the CSV file on every request.
     """
 
     _cached_df: pd.DataFrame = None
 
     REQUIRED_COLUMNS = [
-        "food_id",
-        "canonical_food_name",
-        "state",
-        "region",
-        "meal_type",
-        "calories",
-        "protein",
-        "fat",
-        "carbs"
+        "food_id", "canonical_food_name", "state", "region",
+        "meal_type", "calories", "protein", "fat", "carbs"
     ]
 
     def __init__(self, dataset_path: str):
@@ -54,10 +46,6 @@ class FoodRepository:
             raise ValueError(f"Feature matrix validation failed. Missing keys: {missing}")
 
         FoodRepository._cached_df = df
-
-    def reload_dataset(self) -> None:
-        FoodRepository._cached_df = None
-        self.load_dataset()
 
     def get_all_foods(self) -> pd.DataFrame:
         return FoodRepository._cached_df.copy()
