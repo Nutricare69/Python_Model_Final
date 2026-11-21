@@ -1,11 +1,11 @@
-# Use a clean, stable Python runtime base
-FROM python:3.10-slim
+# Upgrade to an actively supported Python runtime base
+FROM python:3.12-slim
 
 # Set working directory inside the container
 WORKDIR /app
 
-# Install system-level compilers and math libraries required for SciPy and Scikit-Learn
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Update OS packages and install compilers/math libraries
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
   build-essential \
   gfortran \
   libopenblas-dev \
@@ -15,8 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy your requirements list inside
 COPY requirements.txt .
 
-# Install dependencies smoothly with clean library packages
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip and install dependencies smoothly
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy all local project source assets and datasets
 COPY . .
